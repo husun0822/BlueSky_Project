@@ -1,15 +1,6 @@
-'''This file contains the code for doing threshold analysis. Basically, we want to know, at the
+'''This file contains the code for doing sharp transition analysis. Basically, we want to know, at the
 feature level, what drives the sharp transitions of the prediction score for the MX flare prediction
 
-In detail, let us focus on these analyses:
-i. For all MX first flares, what drives the sharp transitions in prediction score, can we specify any
-numerical threshold for any HMI header features that can explain the sharp transitions?
-
-ii. For other MX flares that have experienced some sharp transitions(not restricted to FF), can we do
-the same analysis?
-
-iii. Is our result robust to other sharp transition detection method other than the naive one that I
-have specified previously?
 '''
 
 import numpy as np
@@ -33,7 +24,9 @@ def save_obj(obj, name ):
 def load_obj(name ):
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
-
+    
+    
+# for each flare we could use retrieve_data() to obtain an arbitrary length of SHARP parameter history from the dataset
 def retrieve_data(dataset,Y,AR,time,derivative=False,maxlen=96,extra_feature=False):
     obs = dataset.shape[0]
     num_feature = 20
@@ -114,13 +107,12 @@ def fitspline(data):
 
     return data
 
-# The first function here uses the trivial method for finding transition point:
 # namely we find the ex-post time point at which the prediction score stays high at a
 # certain threshold and also persist for a while, and the ex-ante point where the prediction score remains low
 # and also has a few preceding time periods where the score remains low as well
 
 # The model considered here is the First-Flare prediction model, and all flares that we currently
-# consider is the M/X first flares. We consider the simpler binary classification model
+# consider is the M/X first flares. We consider the simple binary classification model
 
 def Feature_Analysis(modelpath,meanpath,stdpath,dataset,Y,AR,num_hour=12,num_period=6,threshold=0.7,low_threshold=0.3):
     dataset, Y, AR, newtime = retrieve_data(dataset,Y,AR,derivative=False,maxlen=240)
@@ -203,161 +195,7 @@ def Feature_Analysis(modelpath,meanpath,stdpath,dataset,Y,AR,num_hour=12,num_per
                 continue # the threshold, in this case, is never hit
     return dataset, time, AR_list, np.array(all_score)
 
-# The next function is a visual examination of the selected ARs filtered by function Feature_Analysis
-
-def Visual_Threshold_A(data,time,AR_list,all_score,show="score",wholeseries=False):
-    # in the graphics, I am considering drawing a few example graphs to show the sharp transitions of the
-    # prediction score for some selected active regions
-    fig, ax = plt.subplots(nrows=3,ncols=4,sharey=True,sharex=True)
-
-    if show=="score":
-        for i in range(11):
-            t1 = list(range(all_score.shape[1]))
-            t2 = [t1[p] + 150 for p in range(len(t1))]  # this makes sure that every pair of lines does not overlap too much
-            y1 = all_score[2*i]
-            y2 = all_score[2*i+1]
-
-            plt.subplot(3,4,i+1)
-            plt.plot(t1,y1,color='tab:red',linewidth=0.5)
-            plt.plot(t2,y2,color='tab:orange',linewidth=0.5)
-
-            # and we also label the ex-ante/ex-post sharp transition points
-            index = list(time.keys())
-            y1_ante = time[index[2*i]][0]
-            y1_post = time[index[2*i]][1]
-
-            plt.plot(t1[(y1_ante-3):y1_ante],y1[(y1_ante-3):y1_ante],color='tab:blue',linewidth=3)
-            plt.plot(t1[(y1_post):y1_post+3], y1[(y1_post):y1_post+3], color='tab:blue',linewidth=3)
-
-            y2_ante = time[index[2 * i+1]][0]
-            y2_post = time[index[2 * i+1]][1]
-
-            plt.plot(t2[(y2_ante - 3):y2_ante], y2[(y2_ante - 3):y2_ante], color='tab:blue',linewidth=3)
-            plt.plot(t2[(y2_post):y2_post + 3], y2[(y2_post):y2_post + 3], color='tab:blue',linewidth=3)
-
-            plt.title(str(AR_list[2*i])+'/'+str(AR_list[2*i+1]),loc='left', fontsize=7, fontweight=0)
-            plt.ylim((-0.2,1.2))
-
-            if i not in [0, 4, 8]:
-                plt.tick_params(labelleft='off')
-            if i in list(range(12)):
-                plt.tick_params(labelbottom='off')
-    else:
-        for i in range(11):
-            feature_list = ['USFLUX', 'MEANGAM', 'MEANGBT', 'MEANGBZ', 'MEANGBH', 'MEANJZD',
-                            'TOTUSJZ', 'MEANALP', 'MEANJZH', 'TOTUSJH', 'ABSNJZH', 'SAVNCPP', 'MEANPOT',
-                            'TOTPOT', 'MEANSHR', 'SHRGT45', 'SIZE', 'SIZE_ACR', 'NACR', 'NPIX']
-
-            index = list(time.keys())
-            t1 = list(range(data.shape[1]))
-            t2 = [t1[p] + 300 for p in range(len(t1))]  # this makes sure that every pair of lines does not overlap too much
-
-
-            if show==20:
-                # here we could construct a new feature called TOTUSJH/SIZE_ACR
-                y1 = data[index[2 * i], :, 9]/data[index[2 * i], :, 16]
-                y2 = data[index[2 * i + 1], :, 9]/data[index[2 * i + 1], :, 16]  # we are plotting the number "show" feature
-            else:
-                y1 = data[index[2 * i], :, show]
-                y2 = data[index[2 * i + 1], :, show]  # we are plotting the number "show" feature
-                if show==11:
-                    y1 = np.log10(y1)
-                    y2 = np.log10(y2)
-
-            plt.subplot(3,4,i+1)
-            #plt.plot(t1,y1,color='tab:red',linewidth=0.5)
-            #plt.plot(t2,y2,color='tab:orange',linewidth=0.5)
-
-            # and we also label the ex-ante/ex-post sharp transition points
-            y1_ante = time[index[2*i]][0]
-            y1_post = time[index[2*i]][1]
-            if wholeseries==False:
-                plt.plot(t1[y1_ante:y1_ante+30],y1[y1_ante:y1_ante+30],color='tab:red',linewidth=1)
-                plt.plot(t1[y1_post+30:y1_post+60], y1[y1_post:y1_post+30], color='tab:orange',linewidth=1)
-            else:
-                plt.plot(t1,y1,color='tab:red',linewidth=1,alpha=0.3)
-                shift = 0.2*max(y1)
-                #plt.plot(t1[y1_ante:y1_ante + 30], y1[y1_ante:y1_ante + 30]-shift, alpha=0.5, linewidth=1,color='tab:red')
-                plt.plot(t1[y1_post:y1_post + 30], y1[y1_post:y1_post + 30],alpha=1, linewidth=1,color='tab:red')
-
-            y2_ante = time[index[2 * i+1]][0]
-            y2_post = time[index[2 * i+1]][1]
-
-            if wholeseries==False:
-                plt.plot(t2[y2_ante:y2_ante + 30], y2[y2_ante:y2_ante + 30], color='tab:red', linewidth=1)
-                plt.plot(t2[y2_post + 30:y2_post + 60], y2[y2_post:y2_post + 30], color='tab:orange', linewidth=1)
-            else:
-                plt.plot(t2, y2, color='tab:orange', linewidth=1,alpha=0.3)
-                shift = 0.2 * max(y2)
-                #plt.plot(t2[y2_ante:y2_ante + 30], y2[y2_ante:y2_ante + 30] - shift, alpha=0.5, linewidth=1,color='tab:orange')
-                plt.plot(t2[y2_post:y2_post + 30], y2[y2_post:y2_post + 30], alpha=1, linewidth=1,color='tab:orange')
-
-            plt.title(str(AR_list[2*i])+'/'+str(AR_list[2*i+1]),loc='left', fontsize=7, fontweight=0)
-            if show==9:
-                plt.ylim((0,5000))
-            if show==11:
-                plt.ylim((11.5,14))
-
-            if i not in [0, 4, 8]:
-                plt.tick_params(labelleft='off')
-            if i in list(range(12)):
-                plt.tick_params(labelbottom='off')
-
-    # title and save section
-    if show=="score":
-        fig.suptitle("Prediction Score and Sharp Transition", fontsize=11, fontweight=0, color='black',
-                     style='italic', y=0.95)
-        plt.savefig('Prediction Score and Sharp Transition.pdf')
-    else:
-        if show==20:
-            feature = 'TOTUSJH_SIZE'
-        else:
-            feature = feature_list[show]
-        fig.suptitle(feature+" and Sharp Transition", fontsize=11, fontweight=0, color='black',
-                     style='italic', y=0.95)
-        plt.savefig(feature+' and Sharp Transition.pdf')
-
-# The next function is a visual examination of where to draw a threshold:
-def Visual_Threshold_B(data,time,AR_list,all_score,show=9):
-    # in the graphics, I am considering drawing a few example graphs to show the sharp transitions of the
-    # prediction score for some selected active regions
-
-    fig = plt.figure()
-    for i in range(23):
-        feature_list = ['USFLUX', 'MEANGAM', 'MEANGBT', 'MEANGBZ', 'MEANGBH', 'MEANJZD',
-                        'TOTUSJZ', 'MEANALP', 'MEANJZH', 'TOTUSJH', 'ABSNJZH', 'SAVNCPP', 'MEANPOT',
-                        'TOTPOT', 'MEANSHR', 'SHRGT45', 'SIZE', 'SIZE_ACR', 'NACR', 'NPIX']
-
-        index = list(time.keys())
-        if show==20:
-            y1 = data[index[i], :, 9]/data[index[i], :, 17]
-        else:
-            y1 = data[index[i], :, show]
-
-
-        y1_ante = time[index[i]][0]
-        y1_post = time[index[i]][1]
-        if i==0:
-            plt.scatter(y1[y1_ante],i,color='tab:red',marker='o',label='before')
-            plt.scatter(y1[y1_post],i,color='tab:orange',marker='^',label='after')
-        else:
-            plt.scatter(y1[y1_ante], i, color='tab:red', marker='o')
-            plt.scatter(y1[y1_post], i, color='tab:orange', marker='^')
-        plt.plot([y1[y1_ante],y1[y1_post]],[i,i],linewidth=0.5,linestyle='dashed')
-
-        #if i not in [0, 4, 8]:
-        #    plt.tick_params(labelleft='off')
-
-    if show==20:
-        feature = 'TOTUSJH_SIZE_ACR'
-    else:
-        feature = feature_list[show]
-    plt.xlabel(feature)
-    plt.legend(loc='upper right')
-    fig.suptitle(feature+" and Sharp Transition", fontsize=11, fontweight=0, color='black',
-                     style='italic', y=0.95)
-    plt.savefig(feature + ' horizontal visualization.pdf')
-
+# the function transition_time() is used to generate a csv file recording the before/after transition time and the peak time of the flare.
 def transition_time(transtime,timedata,ARdata):
 
     exantetime = []
@@ -386,21 +224,22 @@ def transition_time(transtime,timedata,ARdata):
     output.to_csv('Time.csv')
 
 if __name__=="__main__":
+    # Do the sharp transition detection
     modelpath = 'FF_deri.h5'
     meanpath = 'FFmean.npy'
     stdpath = "FFstd.npy"
     dataset, Y, AR = np.load('HARP_FFdataset.npy'), np.load('HARP_FFlabel.npy'), np.load('HARP_FFAR.npy')
 
-    #data, time, AR_list, all_score = Feature_Analysis(modelpath,meanpath,stdpath,dataset,Y,AR)
-    #np.save('wholeseries',data)
-    #np.save('Sharp_Trans_AR',np.array(AR_list))
-    #np.save('Sharp_Trans_Scores',np.array(all_score))
-    #save_obj(time,'time')
-    data, AR_list, all_score = np.load('wholeseries.npy'), np.load('Sharp_Trans_AR.npy'), np.load('Sharp_Trans_Scores.npy')
-    time = load_obj('time')
-    Visual_Threshold_A(data,time,AR_list,all_score,show=11,wholeseries=True)
-    Visual_Threshold_B(data, time, AR_list, all_score, show=9)
-
+    data, time, AR_list, all_score = Feature_Analysis(modelpath,meanpath,stdpath,dataset,Y,AR)
+    np.save('wholeseries',data)
+    np.save('Sharp_Trans_AR',np.array(AR_list))
+    np.save('Sharp_Trans_Scores',np.array(all_score))
+    save_obj(time,'time')
+    #data, AR_list, all_score = np.load('wholeseries.npy'), np.load('Sharp_Trans_AR.npy'), np.load('Sharp_Trans_Scores.npy')
+    #time = load_obj('time')
+    
+    
+    # Generating the Time.csv file
     time = np.load('HARP_FFTime.npy')
 
     dataset, label, AR, time = retrieve_data(dataset,Y,AR,time,derivative=False,maxlen=240,extra_feature=False)
