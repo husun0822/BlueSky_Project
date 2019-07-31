@@ -113,82 +113,6 @@ def create_first_flare_data(f,GOES,feature_list):
     np.save('HARP_FFTime',Time)
     return dataset, Y_label, AR, Time
 
-def create_postfirst_flare_data(f,GOES,feature_list):
-    '''This function aims at constructing a first flare dataset'''
-    dataset = []
-    trimmed_GOES = []
-
-    for video in list(f.keys())[0:10]:
-        vobj = f[video]
-        active = int(vobj.attrs['NOAA_AR']) ## take record of the active region number
-
-        framelist = list(vobj.keys())
-        framelist = sorted(framelist, key=lambda x: int(x[5:]), reverse=False)
-        timelist = [vobj[frame].attrs['T_REC'][0:-4] for frame in framelist]
-        timelist_new = [datetime.strptime(t, "%Y.%m.%d_%H:%M:%S") for t in timelist]
-
-
-        df = GOES
-        df['peak_time'] = pd.to_datetime(df['peak_time'])
-        df_AR = df[(df['NOAA_ar_num'] == active)]
-
-        # extract the flare type of each recorded flare
-        df_intsy = df_AR['class'].values
-        df_class = [get_class_label(p) for p in df_intsy]
-        df_AR['flare'] = df_class
-
-        argoes = df_AR.values
-
-        argoes_exact = []
-        for r in range(argoes.shape[0]):
-            ts = (np.datetime64(argoes[r, 4]) - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            end_time = datetime.utcfromtimestamp(ts)  # this is the datetime format
-            if end_time >= min(timelist_new) and end_time <= max(timelist_new):
-                argoes_exact.append(argoes[r])
-
-        if len(argoes_exact)==0:
-            continue
-        df_AR = pd.DataFrame(data=np.array(argoes_exact),columns=list(df_AR))
-        df_class = df_AR['flare'].values
-        if not 'M' in df_class:
-            if not 'X' in df_class:
-                continue
-
-        if len(argoes_exact)>0:
-            print(video)
-            df_MX = df_AR[(df_AR['flare'] == 'M') | (df_AR['flare'] == 'X')]
-            MX_peaktime = pd.to_datetime(df_MX['peak_time']).values
-            MX_firstflare = min(MX_peaktime)
-            ts = (MX_firstflare - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-            MX_firstflare = datetime.utcfromtimestamp(ts)
-
-            MX_frames = [datetime.strptime(timelist[i], "%Y.%m.%d_%H:%M:%S") >= MX_firstflare-dt.timedelta(minutes=12) for i in
-                        range(len(timelist))]
-            frametime = [timelist[c] for c in range(len(MX_frames)) if MX_frames[c]==True]
-            MX_frames = [framelist[c] for c in range(len(MX_frames)) if MX_frames[c] == True]
-
-            MX_data = []
-            for s in range(len(MX_frames)):
-                frame = MX_frames[s]
-                entry = [vobj[frame].attrs[feature] for feature in feature_list]
-                entry.append(frametime[s])
-                if not np.isnan(entry[0:len(feature_list)]).any():
-                    MX_data.append(entry)
-            MX_data = np.array(MX_data).reshape((-1, len(feature_list)+1))
-            dataset.append(MX_data)
-
-            post_first_flare = df_AR.values
-            post_exact = []
-            for zm in range(post_first_flare.shape[0]):
-                ts = (np.datetime64(post_first_flare[zm, 4]) - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-                end_time = datetime.utcfromtimestamp(ts)  # this is the datetime format
-                if end_time>=MX_firstflare:
-                    post_exact.append(post_first_flare[zm])
-            post_exact = np.array(post_exact)
-            trimmed_GOES.append(post_exact)
-
-
-    return np.array(dataset), np.array(trimmed_GOES)
 
 def retrieve_data(dataset,Y,derivative=False,maxlen=96):
     obs = dataset.shape[0]
@@ -221,23 +145,6 @@ def retrieve_data(dataset,Y,derivative=False,maxlen=96):
             newY.append(Y[i])
 
     return np.array(newdata),np.array(newY)
-
-def normalize(dataset):
-    num_feature = dataset.shape[2]
-    D = np.reshape(dataset,(-1,num_feature))
-    feature_mean = []
-    feature_std = []
-
-    for i in range(num_feature):
-        tmp = D[:,i]
-        mean = np.mean(tmp, axis=0)
-        std = np.std(tmp, axis=0)
-        D[:, i] = (tmp - mean) / std
-        feature_mean.append(mean)
-        feature_std.append(std)
-
-    data = np.reshape(D,dataset.shape)
-    return data, np.array(feature_mean), np.array(feature_std)
 
 def new_normalization(X_train, X_test):
     num_feature = X_train.shape[2]
@@ -462,7 +369,7 @@ def main(indicator):
 
 
 if __name__=='__main__':
-    f = h5py.File("../Data/HARP_with_flare_j.hdf5","r")
+    f = h5py.File("../Data/HARP_with_flare_j.hdf5","r") # this is run on flux.
     GOES = pd.read_csv("../Data/GOES_dataset.csv")
     feature_list = ['USFLUX', 'MEANGAM', 'MEANGBT', 'MEANGBZ', 'MEANGBH', 'MEANJZD',
                   'TOTUSJZ', 'MEANALP', 'MEANJZH', 'TOTUSJH', 'ABSNJZH', 'SAVNCPP', 'MEANPOT',
