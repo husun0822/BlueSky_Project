@@ -507,12 +507,12 @@ def PIL_fit(image,edge_retain=0.003,polar_threshold=0.90,radius=12,min_samples=5
                      done asynchronously.
         
     '''
-    PIL_detector = PIL(edge_retain=edge_retain,polar_threshold=polar_threshold,radius=radius,min_samples=min_samples,window_size=window_size,mode=mode)
+    PIL_detector = PIL(edge_retain=edge_retain,polar_threshold=polar_threshold,radius=radius,min_samples=min_samples,window_size=window_size)
     if mode=='video':
         PIL_detector.pos_threshold_video = global_pos
         PIL_detector.neg_threshold_video = global_neg
     
-    result = PIL_detector.fit(image,select=select)
+    result = PIL_detector.fit(image,select=select,mode=mode)
     
     return result, image_index
 
@@ -551,7 +551,7 @@ def PIL_fit_parallel(f,mode='image',core=8,global_threshold=0.5,edge_retain=0.00
     global_pos, global_neg = 0, 0
     
     if mode=="video":
-        PIL_detector = PIL(edge_retain=edge_retain,polar_threshold=polar_threshold,radius=radius,min_samples=min_samples,window_size=window_size,mode=mode)
+        PIL_detector = PIL(edge_retain=edge_retain,polar_threshold=polar_threshold,radius=radius,min_samples=min_samples,window_size=window_size)
         global_pos, global_neg = PIL_detector.video_data_decompose(f)
         if PIL_detector.invalid_video==True:
             raise Exception("The video is not valid, either has too many missing values, or does not have positive/negative polars.")
