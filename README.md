@@ -4,9 +4,10 @@ Predictions of solar flares is critical for safeguarding our technological infra
 
 In this research, we utilized Sun's image data and Long-Short-Term-Memory (LSTM) model for predicting this type of rare astrophysics event. 
 
-
-
 Papers:
 
-Wang, X., Chen, Y., Toth, G., Manchester, W., Gombosi, T., Hero, A., Jiao, Z., Sun, H., Jin, M., Liu, Y. (2019) Predicting Solar Flares with Machine Learning: Investigating Solar Cycle Dependence. Published on AGU Fall meeting. Preprint: https://arxiv.org/abs/1912.00502
-Jiao, Z., Sun, H., Wang, X., Manchester, W., Gombosi, T., Hero, A., Chen, Y. (2019) Solar Flare Intensity Prediction with Machine Learning Models. Preprint: http://arxiv.org/abs/1912.06120
+1. Wang, X., Chen, Y., Toth, G., Manchester, W., Gombosi, T., Hero, A., Jiao, Z., Sun, H., Jin, M., Liu, Y. (2019) Predicting Solar Flares with Machine Learning: Investigating Solar Cycle Dependence. Published on AGU Fall meeting. Preprint: https://arxiv.org/abs/1912.00502
+
+2. Jiao, Z., Sun, H., Wang, X., Manchester, W., Gombosi, T., Hero, A., Chen, Y. (2019) Solar Flare Intensity Prediction with Machine Learning Models. Preprint: http://arxiv.org/abs/1912.06120 (Submitted for review)
+
+3. Sun, H., Manchester, W., Jiao, Z., Wang, X., Chen, Y. (2019) Interpreting LSTM prediction on Solar Flare Eruption with Time-series Clustering. Preprint: https://arxiv.org/abs/1912.12360
