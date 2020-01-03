@@ -1,6 +1,0 @@
-Project Overview:
-
-The bluesky project is a project about explaining and predicting the onset of solar flare eruption. Project members come 
-from the climate and space science, computer science and statistics department of University of Michigan. In this project, 
-we aim at using machine learning technique to process the aerospace image and video data associated with the Sun coming 
-from satellites.
